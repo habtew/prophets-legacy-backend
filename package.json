@@ -1,0 +1,28 @@
+{
+  "name": "prophets-legacy-backend",
+  "version": "1.0.0",
+  "description": "Backend API for The Prophet's Legacy Islamic learning platform",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo \"Build successful - No build step required for Node.js backend\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-swagger": "node generate-swagger-yaml.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

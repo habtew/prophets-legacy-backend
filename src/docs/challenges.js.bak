@@ -1,0 +1,260 @@
+/**
+ * @swagger
+ * /challenge-categories:
+ *   get:
+ *     tags:
+ *       - Challenges
+ *     summary: Get all challenge categories for a level
+ *     description: Retrieves challenge categories, showing if they are locked based on level progression
+ *     parameters:
+ *       - in: query
+ *         name: level
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The level number to fetch
+ *       - in: query
+ *         name: childId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The child's UUID to check unlock status
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ChallengeCategory'
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /attempt-sessions:
+ *   post:
+ *     tags:
+ *       - Challenges
+ *     summary: Start a challenge session
+ *     description: Creates a session for a child to attempt a series of questions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - childId
+ *               - challengeCategoryId
+ *             properties:
+ *               childId:
+ *                 type: string
+ *                 format: uuid
+ *               challengeCategoryId:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       201:
+ *         description: Session started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessionId:
+ *                   type: string
+ *                   format: uuid
+ *                 message:
+ *                   type: string
+ *                   example: Session started.
+ *                 questionCount:
+ *                   type: integer
+ *                   example: 3
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+
+/**
+ * @swagger
+ * /attempt-sessions/{sessionId}/next-question:
+ *   get:
+ *     tags:
+ *       - Challenges
+ *     summary: Get the next question in a session
+ *     description: Fetches the next question in the sequence for an ongoing attempt session
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The UUID of the attempt session
+ *     responses:
+ *       200:
+ *         description: Question retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 questionId:
+ *                   type: string
+ *                   format: uuid
+ *                 type:
+ *                   type: string
+ *                   example: multiple_choice
+ *                 question:
+ *                   type: string
+ *                   example: What was the first battle in Islam?
+ *                 options:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Badr", "Uhud", "Hunain"]
+ *                 timeLimitSec:
+ *                   type: integer
+ *                   example: 30
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /attempt-sessions/{sessionId}/answers:
+ *   post:
+ *     tags:
+ *       - Challenges
+ *     summary: Submit an answer
+ *     description: Submits an answer and stores its correctness and time taken
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The UUID of the attempt session
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - questionId
+ *               - answer
+ *               - timeTakenSec
+ *             properties:
+ *               questionId:
+ *                 type: string
+ *                 format: uuid
+ *               answer:
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                 example: Badr
+ *               timeTakenSec:
+ *                 type: integer
+ *                 example: 12
+ *     responses:
+ *       200:
+ *         description: Answer processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 correct:
+ *                   type: boolean
+ *                   example: true
+ *                 score:
+ *                   type: integer
+ *                   example: 10
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'
+ */
+
+/**
+ * @swagger
+ * /attempt-sessions/{sessionId}/finish:
+ *   post:
+ *     tags:
+ *       - Challenges
+ *     summary: Finish a challenge session
+ *     description: Concludes the session, calculates the final score, awards stars, and returns the new progress state
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The UUID of the attempt session
+ *     responses:
+ *       200:
+ *         description: Session finished and scored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessionId:
+ *                   type: string
+ *                   format: uuid
+ *                 finalScore:
+ *                   type: integer
+ *                   example: 75
+ *                 scoring:
+ *                   type: object
+ *                   properties:
+ *                     baseScore:
+ *                       type: integer
+ *                       example: 90
+ *                     timePenalty:
+ *                       type: integer
+ *                       example: -5
+ *                     repeatAttemptPenalty:
+ *                       type: integer
+ *                       example: -10
+ *                 starsEarned:
+ *                   type: integer
+ *                   example: 4
+ *                 passed:
+ *                   type: boolean
+ *                   example: true
+ *                 celebration:
+ *                   type: object
+ *                   properties:
+ *                     sfxId:
+ *                       type: string
+ *                       format: uuid
+ *                     animationId:
+ *                       type: string
+ *                       format: uuid
+ *                 newProgress:
+ *                   $ref: '#/components/schemas/ProgressSummary'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */

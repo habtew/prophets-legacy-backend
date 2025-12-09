@@ -1,0 +1,5006 @@
+openapi: "3.0.0"
+info:
+  title: "The Prophet's Legacy API"
+  version: "1.0.0"
+  description: |
+      Production-grade RESTful backend for The Prophet's Legacy Islamic learning platform
+      
+      ## 🚀 Quick Start Testing Guide
+      
+      ### 1. Test Child Login (Uses USERNAME, not email!)
+      1. **Register a child** - POST `/children/register` with parentId, username, displayName, ageGroup
+      2. **Save the password** - Response includes auto-generated password (e.g., "abc123xyz456")
+      3. **Login as child** - POST `/children/login` with **username** (NOT email) and password
+         - Example: `{"username": "AminaStar", "password": "abc123xyz456"}`
+      4. **Authorize** - Click "Authorize" button, enter: `Bearer YOUR_TOKEN`
+      5. **Test endpoints** - Try `GET /children/me`, `GET /reminders/me`
+      
+      ### 2. Test Parent Login
+      1. **Register parent** - POST `/auth/parent/register` with email, password, name
+      2. **Login** - POST `/auth/login` with email and password
+      3. **Authorize** - Click "Authorize" with parent token
+      4. **Test dashboard** - GET `/parents/me/dashboard` (shows children and notifications)
+      
+      ### 3. Test Admin Login
+      1. **Login as admin** - POST `/admin/auth/login` with admin credentials
+      2. **Authorize** - Click "Authorize" with admin token
+      3. **View categories** - GET `/admin/challenge-categories` (returns 6 predefined!)
+      4. **Create category** - POST `/admin/challenge-categories` (NOW WORKS!)
+      5. **Add question** - POST `/admin/challenge-categories/{id}/questions` (NOW WORKS!)
+      
+      ## 📚 Pre-seeded Data
+      
+      ### Challenge Categories (6 Total, All Published!)
+      - **Level 1**: Word Ordering (3 questions), Picture Matching (3 questions)
+      - **Level 2**: Letter Arrangement (3 questions), Crossword Puzzle (3 questions)
+      - **Level 3**: Virtues Quiz (3 questions), Hadith Arrangement (3 questions)
+      
+      ### Question Types Available (10 Total)
+      letter_arrangement, multiple_choice, missing_word, crossword, word_ordering, tap_counter, word_to_word_match, word_to_image_match, audio_recording, sentence_completion_chips
+      
+      ## 🔑 Important Notes
+      - **Correct paths**: Use `/children/me/` not `/users/me/`, use `/reminders/me` not `/children/me/reminders`
+      - **All admin POST/PUT/DELETE endpoints now working** - Fixed authentication!
+      - **No childId needed** - Authenticated child ID used automatically
+  contact:
+    name: "API Support"
+    email: "support@prophetslegacy.com"
+
+servers:
+  -     url: |
+        https://prophets-legacy-backend-production.up.railway.app/api
+    description: "Production server (Railway)"
+
+  -     url: |
+        http://localhost:3000/api
+    description: "Local development server"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+      description: "Enter JWT token obtained from login endpoint"
+
+  schemas:
+    Error:
+      type: "object"
+      properties:
+        success:
+          type: "boolean"
+          example: false
+
+        message:
+          type: "string"
+          example: "Error message"
+
+    Success:
+      type: "object"
+      properties:
+        success:
+          type: "boolean"
+          example: true
+
+        message:
+          type: "string"
+          example: "Operation successful"
+
+    Parent:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+        email:
+          type: "string"
+          format: "email"
+          example: "parent@example.com"
+
+        name:
+          type: "string"
+          example: "Fatima Ibrahim"
+
+        phone:
+          type: "string"
+          example: "+251900000000"
+
+        email_confirmed:
+          type: "boolean"
+          example: true
+
+        created_at:
+          type: "string"
+          format: "date-time"
+
+    Child:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        parent_id:
+          type: "string"
+          format: "uuid"
+
+        username:
+          type: "string"
+          example: "AminaStar"
+
+        display_name:
+          type: "string"
+          example: "Amina"
+
+        age_group:
+          type: "string"
+          example: "8-10"
+
+        avatar_url:
+          type: "string"
+          format: "uri"
+
+        level:
+          type: "integer"
+          example: 1
+
+        total_stars:
+          type: "integer"
+          example: 85
+
+        current_streak:
+          type: "integer"
+          example: 5
+
+        last_activity_date:
+          type: "string"
+          format: "date"
+
+    LessonCategory:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Prophet's Description"
+
+        level:
+          type: "integer"
+          example: 1
+
+        created_at:
+          type: "string"
+          format: "date-time"
+
+    Lesson:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        category_id:
+          type: "string"
+          format: "uuid"
+
+        level:
+          type: "integer"
+          example: 1
+
+        title:
+          type: "string"
+          example: "The Prophet's Face"
+
+        description:
+          type: "string"
+          example: "The Messenger of Allah ﷺ had the most beautiful face..."
+
+        audio_url:
+          type: "string"
+          format: "uri"
+
+        image_url:
+          type: "string"
+          format: "uri"
+
+        video_url:
+          type: "string"
+          format: "uri"
+
+        stars_reward:
+          type: "integer"
+          example: 5
+
+    ChallengeCategory:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Word Ordering"
+
+        level:
+          type: "integer"
+          example: 1
+
+        pass_percentage:
+          type: "integer"
+          example: 70
+
+        is_published:
+          type: "boolean"
+          example: true
+
+        isLocked:
+          type: "boolean"
+          example: false
+
+        questionCount:
+          type: "integer"
+          example: 3
+
+        unlockRequirement:
+          type: "string"
+          example: "Complete all challenges in the previous level to unlock."
+
+    ChallengeQuestion:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        category_id:
+          type: "string"
+          format: "uuid"
+
+        type:
+          type: "string"
+          enum:
+            - "multiple_choice"
+            - "word_ordering"
+            - "letter_arrangement"
+            - "picture_matching"
+          example: "multiple_choice"
+
+        question:
+          type: "string"
+          example: "What was the first battle in Islam?"
+
+        options:
+          type: "array"
+          items:
+            type: "string"
+
+          example:
+            - "Badr"
+            - "Uhud"
+            - "Hunain"
+        answer:
+          oneOf:
+            -               type: "string"
+
+            -               type: "array"
+              items:
+                type: "string"
+          example: "Badr"
+
+        time_limit_sec:
+          type: "integer"
+          example: 30
+
+        order_index:
+          type: "integer"
+          example: 0
+
+    AttemptSession:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        child_id:
+          type: "string"
+          format: "uuid"
+
+        category_id:
+          type: "string"
+          format: "uuid"
+
+        status:
+          type: "string"
+          enum:
+            - "active"
+            - "completed"
+          example: "active"
+
+        final_score:
+          type: "integer"
+          example: 75
+
+        stars_earned:
+          type: "integer"
+          example: 4
+
+        passed:
+          type: "boolean"
+          example: true
+
+    Achievement:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Prophet's Description Master"
+
+        description:
+          type: "string"
+          example: "Complete all lessons in Prophet's Description category"
+
+        rule:
+          type: "string"
+          example: "Complete all lessons in Prophet's Description category"
+
+        icon_url:
+          type: "string"
+          format: "uri"
+
+    Reminder:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        child_id:
+          type: "string"
+          format: "uuid"
+          nullable: true
+
+        is_global:
+          type: "boolean"
+          example: false
+
+        title:
+          type: "string"
+          example: "Morning Adhkar"
+
+        message:
+          type: "string"
+          example: "Time for your morning remembrance"
+
+        time:
+          type: "string"
+          example: |
+              06:30
+
+        timezone:
+          type: "string"
+          example: "Africa/Addis_Ababa"
+
+        repeat:
+          type: "string"
+          example: "daily"
+
+        sound_ref:
+          type: "string"
+          example: "default_chime.mp3"
+
+        enabled:
+          type: "boolean"
+          example: true
+
+    Leaderboard:
+      type: "object"
+      properties:
+        period:
+          type: "string"
+          enum:
+            - "daily"
+            - "weekly"
+            - "monthly"
+          example: "weekly"
+
+        entries:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              rank:
+                type: "integer"
+                example: 1
+
+              childName:
+                type: "string"
+                example: "Yusuf"
+
+              stars:
+                type: "integer"
+                example: 150
+
+    ProgressSummary:
+      type: "object"
+      properties:
+        currentLevel:
+          type: "integer"
+          example: 1
+
+        levelProgress:
+          type: "object"
+          properties:
+            completedInLevel:
+              type: "integer"
+              example: 7
+
+            totalInLevel:
+              type: "integer"
+              example: 10
+
+            percentage:
+              type: "integer"
+              example: 70
+
+        totalStars:
+          type: "integer"
+          example: 150
+
+        currentStreak:
+          type: "integer"
+          example: 5
+
+        achievementsUnlocked:
+          type: "integer"
+          example: 4
+
+        totalAchievements:
+          type: "integer"
+          example: 20
+
+    Notification:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        parent_id:
+          type: "string"
+          format: "uuid"
+
+        message:
+          type: "string"
+          example: "Amina completed a challenge"
+
+        type:
+          type: "string"
+          enum:
+            - "lesson_completed"
+            - "challenge_completed"
+            - "achievement_unlocked"
+          example: "lesson_completed"
+
+        is_read:
+          type: "boolean"
+          example: false
+
+        created_at:
+          type: "string"
+          format: "date-time"
+
+    NotificationTemplate:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Morning Adhkar Reminder"
+
+        type:
+          type: "string"
+          enum:
+            - "reminder"
+            - "tip"
+            - "announcement"
+          example: "reminder"
+
+        content:
+          type: "object"
+          properties:
+            en:
+              type: "string"
+              example: "Don't forget your morning adhkār!"
+
+            ar:
+              type: "string"
+              example: "لا تنس أذكار الصباح!"
+
+    Shareable:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        child_id:
+          type: "string"
+          format: "uuid"
+
+        source_type:
+          type: "string"
+          enum:
+            - "lesson"
+            - "challenge"
+            - "achievement"
+          example: "lesson"
+
+        source_id:
+          type: "string"
+          format: "uuid"
+
+        format:
+          type: "string"
+          enum:
+            - "image"
+            - "video"
+          example: "image"
+
+        status:
+          type: "string"
+          enum:
+            - "pending"
+            - "processing"
+            - "completed"
+            - "failed"
+          example: "completed"
+
+        download_url:
+          type: "string"
+          format: "uri"
+
+    SFX:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Correct Answer"
+
+        url:
+          type: "string"
+          format: "uri"
+
+    Animation:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+
+        name:
+          type: "string"
+          example: "Star Burst"
+
+        url:
+          type: "string"
+          format: "uri"
+
+  responses:
+    UnauthorizedError:
+      description: "Authentication required or invalid token"
+      content:
+        application/json:
+          schema:
+            $ref: |
+                #/components/schemas/Error
+
+          example:
+            success: false
+            message: "Authentication required"
+
+    ForbiddenError:
+      description: "Insufficient permissions"
+      content:
+        application/json:
+          schema:
+            $ref: |
+                #/components/schemas/Error
+
+          example:
+            success: false
+            message: "Insufficient permissions"
+
+    NotFoundError:
+      description: "Resource not found"
+      content:
+        application/json:
+          schema:
+            $ref: |
+                #/components/schemas/Error
+
+          example:
+            success: false
+            message: "Resource not found"
+
+    BadRequestError:
+      description: "Invalid request parameters"
+      content:
+        application/json:
+          schema:
+            $ref: |
+                #/components/schemas/Error
+
+          example:
+            success: false
+            message: "Invalid request parameters"
+
+    ConflictError:
+      description: "Resource conflict"
+      content:
+        application/json:
+          schema:
+            $ref: |
+                #/components/schemas/Error
+
+          example:
+            success: false
+            message: "Resource already exists"
+
+security:
+  -     BearerAuth: []
+tags:
+  -     name: "Authentication"
+    description: "User registration, login, and password management"
+
+  -     name: "Parents"
+    description: "Parent profile and dashboard management"
+
+  -     name: "Children"
+    description: "Child profile and preferences management"
+
+  -     name: "Lessons"
+    description: "Educational lesson content and progress tracking"
+
+  -     name: "Challenges"
+    description: "Quiz challenges and attempt sessions"
+
+  -     name: "Reminders"
+    description: "Personal and global reminder management"
+
+  -     name: "Progress & Leaderboard"
+    description: "Progress tracking and leaderboard rankings"
+
+  -     name: "Social Sharing"
+    description: "Shareable asset generation and tracking"
+
+  -     name: "Admin - Lessons"
+    description: "Admin endpoints for lesson management"
+
+  -     name: "Admin - Challenges"
+    description: "Admin endpoints for challenge management"
+
+  -     name: "Admin - Media & Notifications"
+    description: "Admin endpoints for media assets and notifications"
+
+  -     name: "Internal Workers"
+    description: "Background job endpoints for internal use"
+
+  -     name: "System"
+    description: "System health and version information"
+
+  -     name: "Upload"
+    description: "Direct file upload endpoints (multipart/form-data)"
+
+  -     name: "Avatars"
+    description: "Predefined avatar management (available to all authenticated users)"
+paths:
+  /admin/challenge-categories:
+    get:
+      tags:
+        - "Admin - Challenges"
+      summary: "Get all challenge categories (Admin)"
+      description: "Retrieves all challenge categories for admin management"
+      responses:
+        200:
+          description: "Categories retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                      format: "uuid"
+
+                    name:
+                      type: "string"
+                      example: "Word Ordering"
+
+                    level:
+                      type: "integer"
+                      example: 1
+
+                    questionCount:
+                      type: "integer"
+                      example: 3
+
+                    isPublished:
+                      type: "boolean"
+                      example: true
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Challenges"
+      summary: "Create a challenge category"
+      description: "Creates a new challenge category in draft status"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "name"
+                - "level"
+              properties:
+                name:
+                  type: "string"
+                  example: "Hadith Arrangement"
+
+                level:
+                  type: "integer"
+                  example: 1
+
+                passPercentage:
+                  type: "integer"
+                  example: 70
+
+      responses:
+        201:
+          description: "Category created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  categoryId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Challenge Category created. It is currently in draft."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/challenge-categories/{id}:
+    put:
+      tags:
+        - "Admin - Challenges"
+      summary: "Update a challenge category"
+      description: "Updates a challenge category. Cannot publish unless category has at least 3 questions"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+                  example: "Word Ordering Updated"
+
+                passPercentage:
+                  type: "integer"
+                  example: 80
+
+                published:
+                  type: "boolean"
+                  example: true
+
+      responses:
+        200:
+          description: "Category updated successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Category updated"
+
+        400:
+          description: "Cannot publish (less than 3 questions)"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Cannot publish - Category must have at least 3 questions"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    delete:
+      tags:
+        - "Admin - Challenges"
+      summary: "Delete a challenge category"
+      description: "Deletes a challenge category and all its questions"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      responses:
+        200:
+          description: "Category deleted successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Category and questions deleted."
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/challenge-question-types:
+    get:
+      tags:
+        - "Admin - Challenges"
+      summary: "Get all challenge question types"
+      description: "Fetches the master list of all available question types"
+      responses:
+        200:
+          description: "Question types retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  questionTypes:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "letter_arrangement"
+
+                        name:
+                          type: "string"
+                          example: "Letter Arrangement"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/challenge-categories/{id}/questions:
+    get:
+      tags:
+        - "Admin - Challenges"
+      summary: "Get all questions for a category"
+      description: "Retrieves all questions for a specific challenge category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      responses:
+        200:
+          description: "Questions retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: |
+                      #/components/schemas/ChallengeQuestion
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Challenges"
+      summary: "Add a question to a category"
+      description: "Adds a new question to a challenge category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "type"
+                - "question"
+                - "options"
+                - "answer"
+              properties:
+                type:
+                  type: "string"
+                  enum:
+                    - "word_ordering"
+                    - "multiple_choice"
+                    - "letter_arrangement"
+                    - "picture_matching"
+                  example: "word_ordering"
+
+                question:
+                  type: "string"
+                  example: "Arrange the words..."
+
+                options:
+                  type: "array"
+                  items:
+                    type: "string"
+
+                  example:
+                    - "Religion"
+                    - "is"
+                    - "advice"
+                answer:
+                  oneOf:
+                    -                       type: "string"
+
+                    -                       type: "array"
+                      items:
+                        type: "string"
+                  example:
+                    - "Religion"
+                    - "is"
+                    - "advice"
+                timeLimitSec:
+                  type: "integer"
+                  example: 30
+
+      responses:
+        201:
+          description: "Question added successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  questionId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Question added."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/challenge-categories/{id}/questions/{qid}:
+    put:
+      tags:
+        - "Admin - Challenges"
+      summary: "Update a question"
+      description: "Updates an existing question"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+
+        -           in: "path"
+          name: "qid"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The question UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                type:
+                  type: "string"
+
+                question:
+                  type: "string"
+                  example: "Updated question text..."
+
+                options:
+                  type: "array"
+                  items:
+                    type: "string"
+
+                answer:
+                  oneOf:
+                    -                       type: "string"
+
+                    -                       type: "array"
+                      items:
+                        type: "string"
+                timeLimitSec:
+                  type: "integer"
+                  example: 60
+
+      responses:
+        200:
+          description: "Question updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    delete:
+      tags:
+        - "Admin - Challenges"
+      summary: "Delete a question"
+      description: "Deletes a question from a category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+
+        -           in: "path"
+          name: "qid"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The question UUID"
+      responses:
+        200:
+          description: "Question deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/challenge-categories/{id}/questions/reorder:
+    patch:
+      tags:
+        - "Admin - Challenges"
+      summary: "Reorder questions in a category"
+      description: "Changes the order of questions in a category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "orderedQuestionIds"
+              properties:
+                orderedQuestionIds:
+                  type: "array"
+                  items:
+                    type: "string"
+                    format: "uuid"
+
+                  example:
+                    - "q3"
+                    - "q1"
+                    - "q2"
+      responses:
+        200:
+          description: "Questions reordered successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/lesson-categories:
+    get:
+      tags:
+        - "Admin - Lessons"
+      summary: "Get all lesson categories (Admin)"
+      description: "Retrieves all lesson categories for admin management"
+      responses:
+        200:
+          description: "Categories retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: |
+                      #/components/schemas/LessonCategory
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Lessons"
+      summary: "Create a lesson category"
+      description: "Creates a new lesson category"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "name"
+                - "level"
+              properties:
+                name:
+                  type: "string"
+                  example: "Stories of the Sahaba"
+
+                level:
+                  type: "integer"
+                  example: 2
+
+      responses:
+        201:
+          description: "Category created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  categoryId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Category created."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/lesson-categories/{id}:
+    put:
+      tags:
+        - "Admin - Lessons"
+      summary: "Update a lesson category"
+      description: "Updates an existing lesson category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+                  example: "Stories of the Companions"
+
+                level:
+                  type: "integer"
+                  example: 2
+
+      responses:
+        200:
+          description: "Category updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    delete:
+      tags:
+        - "Admin - Lessons"
+      summary: "Delete a lesson category"
+      description: "Deletes a lesson category"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The category UUID"
+      responses:
+        200:
+          description: "Category deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/lessons:
+    get:
+      tags:
+        - "Admin - Lessons"
+      summary: "Get all lessons (Admin)"
+      description: "Retrieves all lessons with pagination and filtering"
+      parameters:
+        -           in: "query"
+          name: "page"
+          schema:
+            type: "integer"
+            default: 1
+
+          description: "Page number"
+
+        -           in: "query"
+          name: "filterByCategoryId"
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "Filter by category ID"
+
+        -           in: "query"
+          name: "sortByLevel"
+          schema:
+            type: "string"
+            enum:
+              - "asc"
+              - "desc"
+          description: "Sort by level"
+      responses:
+        200:
+          description: "Lessons retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  lessons:
+                    type: "array"
+                    items:
+                      $ref: |
+                          #/components/schemas/Lesson
+
+                  totalPages:
+                    type: "integer"
+                    example: 10
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Lessons"
+      summary: "Create a lesson"
+      description: "Creates a new lesson"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "categoryId"
+                - "level"
+                - "title"
+              properties:
+                categoryId:
+                  type: "string"
+                  format: "uuid"
+
+                level:
+                  type: "integer"
+                  example: 1
+
+                title:
+                  type: "string"
+                  example: "The Prophet's Hair"
+
+                description:
+                  type: "string"
+                  example: "Description of the lesson..."
+
+                audioUrl:
+                  type: "string"
+                  format: "uri"
+
+                imageUrl:
+                  type: "string"
+                  format: "uri"
+
+                videoUrl:
+                  type: "string"
+                  format: "uri"
+
+      responses:
+        201:
+          description: "Lesson created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  lessonId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Lesson created."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/lessons/{id}:
+    put:
+      tags:
+        - "Admin - Lessons"
+      summary: "Update a lesson"
+      description: "Updates an existing lesson"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The lesson UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                title:
+                  type: "string"
+                  example: "The Noble Hair of the Prophet ﷺ"
+
+                description:
+                  type: "string"
+
+                level:
+                  type: "integer"
+                  example: 2
+
+                audioUrl:
+                  type: "string"
+                  format: "uri"
+
+                imageUrl:
+                  type: "string"
+                  format: "uri"
+
+                videoUrl:
+                  type: "string"
+                  format: "uri"
+
+      responses:
+        200:
+          description: "Lesson updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    delete:
+      tags:
+        - "Admin - Lessons"
+      summary: "Delete a lesson"
+      description: "Deletes a lesson"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The lesson UUID"
+      responses:
+        200:
+          description: "Lesson deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/media/upload-url:
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Get media upload URL"
+      description: "Gets a presigned URL to upload media (audio, images) to storage"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "filename"
+                - "contentType"
+              properties:
+                filename:
+                  type: "string"
+                  example: "lesson1.mp3"
+
+                contentType:
+                  type: "string"
+                  example: "audio/mpeg"
+
+      responses:
+        200:
+          description: "Upload URL generated successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  uploadUrl:
+                    type: "string"
+                    format: "uri"
+                    example: |
+                        https://storage.example.com/presigned-url
+
+                  assetKey:
+                    type: "string"
+                    example: "unique_asset_key"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/sfx:
+    get:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Get all sound effects (SFX)"
+      description: "Retrieves all sound effects"
+      responses:
+        200:
+          description: "SFX retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: |
+                      #/components/schemas/SFX
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Add a new sound effect (SFX)"
+      description: "Adds a new sound effect to the system"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "name"
+                - "sfxUrl"
+              properties:
+                name:
+                  type: "string"
+                  example: "Level Up Sound"
+
+                sfxUrl:
+                  type: "string"
+                  format: "uri"
+
+      responses:
+        201:
+          description: "SFX added successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  sfxId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "SFX added."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/sfx/{id}:
+    delete:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Delete a sound effect (SFX)"
+      description: "Deletes a sound effect from the system"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The SFX UUID"
+      responses:
+        200:
+          description: "SFX deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/animations:
+    get:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Get all animations"
+      description: "Retrieves all celebration animations"
+      responses:
+        200:
+          description: "Animations retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: |
+                      #/components/schemas/Animation
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Add a new animation"
+      description: "Adds a new celebration animation"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "name"
+                - "animationUrl"
+              properties:
+                name:
+                  type: "string"
+                  example: "Star Burst"
+
+                animationUrl:
+                  type: "string"
+                  format: "uri"
+
+      responses:
+        201:
+          description: "Animation added successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  animationId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Animation added."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/animations/{id}:
+    delete:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Delete an animation"
+      description: "Deletes a celebration animation"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The animation UUID"
+      responses:
+        200:
+          description: "Animation deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/notification-templates:
+    get:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Get all notification templates"
+      description: "Retrieves all notification templates"
+      responses:
+        200:
+          description: "Templates retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: |
+                      #/components/schemas/NotificationTemplate
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Create a notification template"
+      description: "Creates a new notification template"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "name"
+                - "type"
+                - "content"
+              properties:
+                name:
+                  type: "string"
+                  example: "Morning Adhkar Reminder"
+
+                type:
+                  type: "string"
+                  enum:
+                    - "reminder"
+                    - "tip"
+                    - "announcement"
+                  example: "reminder"
+
+                content:
+                  type: "object"
+                  properties:
+                    en:
+                      type: "string"
+                      example: "Don't forget your morning adhkār! ☀️"
+
+                    ar:
+                      type: "string"
+                      example: "لا تنس أذكار الصباح! ☀️"
+
+      responses:
+        201:
+          description: "Template created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  templateId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Template created."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/notification-templates/{id}:
+    put:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Update a notification template"
+      description: "Updates an existing notification template"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The template UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+
+                type:
+                  type: "string"
+
+                content:
+                  type: "object"
+                  properties:
+                    en:
+                      type: "string"
+
+                    ar:
+                      type: "string"
+
+      responses:
+        200:
+          description: "Template updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    delete:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Delete a notification template"
+      description: "Deletes a notification template"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The template UUID"
+      responses:
+        200:
+          description: "Template deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/notifications/campaigns:
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Create a notification campaign"
+      description: "Schedules a new notification campaign"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "templateId"
+                - "target"
+                - "schedule"
+              properties:
+                templateId:
+                  type: "string"
+                  format: "uuid"
+
+                target:
+                  type: "object"
+                  properties:
+                    ageGroup:
+                      type: "array"
+                      items:
+                        type: "string"
+
+                      example:
+                        - "8-10"
+                schedule:
+                  type: "string"
+                  format: "date-time"
+                  example: |
+                      2025-12-15T09:00:00Z
+
+      responses:
+        201:
+          description: "Campaign scheduled successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  campaignId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Campaign scheduled."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/notifications/campaigns/{id}/test:
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Send a test notification"
+      description: "Sends a test notification to a specific user"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The campaign UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "targetUserId"
+              properties:
+                targetUserId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        200:
+          description: "Test notification sent successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/avatars/predefined:
+    post:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Upload predefined avatar for children to choose"
+      description: |
+          Admins can upload predefined avatar images that children can select instead of uploading their own.
+          
+          **Categories:** animals, characters, emojis, islamic, general (default)
+          
+          **Order Index:** Lower numbers appear first.
+          
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: "object"
+              required:
+                - "image"
+                - "name"
+              properties:
+                image:
+                  type: "string"
+                  format: "binary"
+                  description: "The avatar image file"
+
+                name:
+                  type: "string"
+                  example: "Happy Lion"
+
+                category:
+                  type: "string"
+                  example: "animals"
+                  default: "general"
+
+                orderIndex:
+                  type: "integer"
+                  example: 0
+                  default: 0
+
+      responses:
+        201:
+          description: "Avatar uploaded successfully"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        403:
+          $ref: |
+              #/components/responses/ForbiddenError
+
+  /admin/avatars/predefined/{id}:
+    put:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Update predefined avatar details"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+
+                category:
+                  type: "string"
+
+                orderIndex:
+                  type: "integer"
+
+                isActive:
+                  type: "boolean"
+
+      responses:
+        200:
+          description: "Avatar updated successfully"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        403:
+          $ref: |
+              #/components/responses/ForbiddenError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+    delete:
+      tags:
+        - "Admin - Media & Notifications"
+      summary: "Delete predefined avatar"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      responses:
+        200:
+          description: "Avatar deleted successfully"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        403:
+          $ref: |
+              #/components/responses/ForbiddenError
+
+  /avatars/predefined:
+    get:
+      tags:
+        - "Avatars"
+      summary: "Get all predefined avatars (authenticated users)"
+      description: |
+          Get all predefined avatars that children can choose from.
+          
+          **Available to:** Children, Parents, Admins - anyone with a valid token
+          
+          **Filter options:**
+          - By category (animals, characters, emojis, islamic, general)
+          - Active only (default) or include inactive
+          
+      parameters:
+        -           in: "query"
+          name: "category"
+          schema:
+            type: "string"
+
+          description: "Filter by category"
+          example: "animals"
+
+        -           in: "query"
+          name: "activeOnly"
+          schema:
+            type: "string"
+            enum:
+              - true
+              - false
+            default: true
+
+          description: "Show only active avatars"
+      responses:
+        200:
+          description: "Avatars retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  avatars:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        name:
+                          type: "string"
+                          example: "Happy Lion"
+
+                        image_url:
+                          type: "string"
+                          format: "uri"
+
+                        category:
+                          type: "string"
+                          example: "animals"
+
+                        order_index:
+                          type: "integer"
+                          example: 0
+
+                        is_active:
+                          type: "boolean"
+                          example: true
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /auth/parent/register:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Register a new parent account"
+      description: "Creates a new parent account and triggers a confirmation email"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "email"
+                - "password"
+                - "name"
+              properties:
+                email:
+                  type: "string"
+                  format: "email"
+                  example: "parent@example.com"
+
+                password:
+                  type: "string"
+                  format: "password"
+                  example: "StrongPass123"
+
+                name:
+                  type: "string"
+                  example: "Fatima Ibrahim"
+
+                phone:
+                  type: "string"
+                  example: 251900000000
+
+      responses:
+        201:
+          description: "Registration successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Registration successful. Please confirm your email."
+
+                  parentId:
+                    type: "string"
+                    format: "uuid"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        409:
+          $ref: |
+              #/components/responses/ConflictError
+
+  /auth/parent/confirm:
+    get:
+      tags:
+        - "Authentication"
+      summary: "Confirm parent's email address"
+      description: "Verifies a parent's email address using the confirmation link from email. This endpoint is called automatically when clicking the confirmation link."
+      security: []
+      parameters:
+        -           in: "query"
+          name: "token_hash"
+          required: true
+          schema:
+            type: "string"
+
+          description: "Token hash from confirmation email"
+
+        -           in: "query"
+          name: "type"
+          required: true
+          schema:
+            type: "string"
+
+          description: "Verification type from email"
+      responses:
+        200:
+          description: "Email verified successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Email verified successfully. You can now log in."
+
+                  user:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "string"
+                        format: "uuid"
+
+                      email:
+                        type: "string"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+  /auth/login:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Login (Parent or Admin)"
+      description: "Authenticates a user and returns a JWT token"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "email"
+                - "password"
+              properties:
+                email:
+                  type: "string"
+                  format: "email"
+                  example: "parent@example.com"
+
+                password:
+                  type: "string"
+                  format: "password"
+                  example: "Pass123"
+
+      responses:
+        200:
+          description: "Login successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  token:
+                    type: "string"
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+                  user:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "string"
+                        format: "uuid"
+
+                      role:
+                        type: "string"
+                        example: "parent"
+
+                      name:
+                        type: "string"
+                        example: "Fatima"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /auth/password-reset/request:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Request password reset"
+      description: "Initiates the password reset process by sending a link to the user's email"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "email"
+              properties:
+                email:
+                  type: "string"
+                  format: "email"
+                  example: "parent@example.com"
+
+      responses:
+        200:
+          description: "Password reset link sent"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Password reset link sent."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+  /auth/password-reset/confirm:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Confirm new password"
+      description: "Sets a new password using the token from the reset email"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "token"
+                - "newPassword"
+              properties:
+                token:
+                  type: "string"
+                  example: "resetTokenFromEmail"
+
+                newPassword:
+                  type: "string"
+                  format: "password"
+                  example: "NewSecurePass456"
+
+      responses:
+        200:
+          description: "Password reset successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Password has been reset successfully."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+  /auth/logout:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Parent logout"
+      description: |
+          Logs out the authenticated parent. Client should delete the stored JWT token.
+          
+          **Note:** JWT tokens are stateless, so this endpoint simply confirms logout.
+          The client must delete the token from storage to complete the logout process.
+          
+      responses:
+        200:
+          description: "Logged out successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Logged out successfully"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /admin/auth/logout:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Admin logout"
+      description: |
+          Logs out the authenticated admin. Client should delete the stored JWT token.
+          
+          **Note:** JWT tokens are stateless, so this endpoint simply confirms logout.
+          The client must delete the token from storage to complete the logout process.
+          
+      responses:
+        200:
+          description: "Logged out successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Logged out successfully"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        403:
+          $ref: |
+              #/components/responses/ForbiddenError
+
+  /challenge-categories:
+    get:
+      tags:
+        - "Challenges"
+      summary: "Get all challenge categories for a level"
+      description: "Retrieves challenge categories, showing if they are locked based on level progression"
+      parameters:
+        -           in: "query"
+          name: "level"
+          required: true
+          schema:
+            type: "integer"
+
+          description: "The level number to fetch"
+
+        -           in: "query"
+          name: "childId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The child's UUID to check unlock status"
+      responses:
+        200:
+          description: "Categories retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  categories:
+                    type: "array"
+                    items:
+                      $ref: |
+                          #/components/schemas/ChallengeCategory
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /attempt-sessions:
+    post:
+      tags:
+        - "Challenges"
+      summary: "Start a challenge session"
+      description: "Creates a session for a child to attempt a series of questions"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "childId"
+                - "challengeCategoryId"
+              properties:
+                childId:
+                  type: "string"
+                  format: "uuid"
+
+                challengeCategoryId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        201:
+          description: "Session started successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  sessionId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Session started."
+
+                  questionCount:
+                    type: "integer"
+                    example: 3
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        403:
+          $ref: |
+              #/components/responses/ForbiddenError
+
+  /attempt-sessions/{sessionId}/next-question:
+    get:
+      tags:
+        - "Challenges"
+      summary: "Get the next question in a session"
+      description: "Fetches the next question in the sequence for an ongoing attempt session"
+      parameters:
+        -           in: "path"
+          name: "sessionId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the attempt session"
+      responses:
+        200:
+          description: "Question retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  questionId:
+                    type: "string"
+                    format: "uuid"
+
+                  type:
+                    type: "string"
+                    example: "multiple_choice"
+
+                  question:
+                    type: "string"
+                    example: "What was the first battle in Islam?"
+
+                  options:
+                    type: "array"
+                    items:
+                      type: "string"
+
+                    example:
+                      - "Badr"
+                      - "Uhud"
+                      - "Hunain"
+                  timeLimitSec:
+                    type: "integer"
+                    example: 30
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /attempt-sessions/{sessionId}/answers:
+    post:
+      tags:
+        - "Challenges"
+      summary: "Submit an answer"
+      description: "Submits an answer and stores its correctness and time taken"
+      parameters:
+        -           in: "path"
+          name: "sessionId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the attempt session"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "questionId"
+                - "answer"
+                - "timeTakenSec"
+              properties:
+                questionId:
+                  type: "string"
+                  format: "uuid"
+
+                answer:
+                  oneOf:
+                    -                       type: "string"
+
+                    -                       type: "array"
+                      items:
+                        type: "string"
+                  example: "Badr"
+
+                timeTakenSec:
+                  type: "integer"
+                  example: 12
+
+      responses:
+        200:
+          description: "Answer processed successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  correct:
+                    type: "boolean"
+                    example: true
+
+                  score:
+                    type: "integer"
+                    example: 10
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+        409:
+          $ref: |
+              #/components/responses/ConflictError
+
+  /attempt-sessions/{sessionId}/finish:
+    post:
+      tags:
+        - "Challenges"
+      summary: "Finish a challenge session"
+      description: "Concludes the session, calculates the final score, awards stars, and returns the new progress state"
+      parameters:
+        -           in: "path"
+          name: "sessionId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the attempt session"
+      responses:
+        200:
+          description: "Session finished and scored"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  sessionId:
+                    type: "string"
+                    format: "uuid"
+
+                  finalScore:
+                    type: "integer"
+                    example: 75
+
+                  scoring:
+                    type: "object"
+                    properties:
+                      baseScore:
+                        type: "integer"
+                        example: 90
+
+                      timePenalty:
+                        type: "integer"
+                        example: -5
+
+                      repeatAttemptPenalty:
+                        type: "integer"
+                        example: -10
+
+                  starsEarned:
+                    type: "integer"
+                    example: 4
+
+                  passed:
+                    type: "boolean"
+                    example: true
+
+                  celebration:
+                    type: "object"
+                    properties:
+                      sfxId:
+                        type: "string"
+                        format: "uuid"
+
+                      animationId:
+                        type: "string"
+                        format: "uuid"
+
+                  newProgress:
+                    $ref: |
+                        #/components/schemas/ProgressSummary
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /children/login:
+    post:
+      tags:
+        - "Children"
+      summary: "Child login (Username Only - No Password!)"
+      description: |
+          Authenticates a child using ONLY their username (no password required).
+          Children use a simplified login flow for ease of use.
+          Returns a JWT token that should be used in Authorization header for subsequent requests.
+          
+          **How to Test in Swagger:**
+          1. Click "Try it out"
+          2. Enter only the username (e.g., "AminaStar")
+          3. Click "Execute"
+          4. Copy the token from the response
+          5. Click "Authorize" button at the top of the page
+          6. Paste: `Bearer YOUR_TOKEN`
+          7. Click "Authorize" then "Close"
+          8. Now you can test all child endpoints!
+          
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "username"
+              properties:
+                username:
+                  type: "string"
+                  example: "AminaStar"
+                  description: "The child's unique username (password NOT required)"
+
+      responses:
+        200:
+          description: "Login successful"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  token:
+                    type: "string"
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    description: "JWT token - use this in Authorization header as \"Bearer {token}\""
+
+                  user:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "string"
+                        format: "uuid"
+                        example: "6c73902e-34b4-45cc-9011-060cdf63ba77"
+
+                      username:
+                        type: "string"
+                        example: "AminaStar"
+
+                      displayName:
+                        type: "string"
+                        example: "Amina"
+
+                      role:
+                        type: "string"
+                        example: "child"
+
+                      level:
+                        type: "integer"
+                        example: 1
+
+                      stars:
+                        type: "integer"
+                        example: 45
+
+                      avatarUrl:
+                        type: "string"
+                        nullable: true
+                        example: null
+
+        400:
+          description: "Username missing"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Username is required"
+
+        401:
+          description: "Invalid username"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Invalid username - child not found"
+
+        500:
+          description: "Server error"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Database error"
+
+                  details:
+                    type: "string"
+
+  /children/logout:
+    post:
+      tags:
+        - "Children"
+      summary: "Child logout"
+      description: |
+          Logs out the authenticated child. Client should delete the stored JWT token.
+          
+          **Note:** JWT tokens are stateless, so this endpoint simply confirms logout.
+          The client must delete the token from storage to complete the logout process.
+          
+      responses:
+        200:
+          description: "Logged out successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Logged out successfully"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /children/register:
+    post:
+      tags:
+        - "Children"
+      summary: "Register a child profile"
+      description: |
+          Creates a new child profile under a parent's account. This is a public endpoint - no authentication required.
+          
+          **Important:** Children login using ONLY their username (no password needed).
+          The username is used directly for authentication.
+          
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "parentId"
+                - "username"
+                - "displayName"
+                - "ageGroup"
+              properties:
+                parentId:
+                  type: "string"
+                  format: "uuid"
+                  description: "The UUID of the parent account"
+                  example: "271c9184-d479-4804-b4c9-4fb8fe336f44"
+
+                username:
+                  type: "string"
+                  example: "AminaStar"
+                  description: "Unique username for the child (used for login)"
+
+                displayName:
+                  type: "string"
+                  example: "Amina"
+                  description: "Display name for the child"
+
+                ageGroup:
+                  type: "string"
+                  example: "8-10"
+                  description: "Age group (e.g. 5-7, 8-10, 11-13)"
+
+                avatarUrl:
+                  type: "string"
+                  format: "uri"
+                  nullable: true
+                  description: "Optional avatar URL"
+
+      responses:
+        201:
+          description: "Child profile created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  childId:
+                    type: "string"
+                    format: "uuid"
+                    example: "6c73902e-34b4-45cc-9011-060cdf63ba77"
+
+                  username:
+                    type: "string"
+                    example: "AminaStar"
+
+                  message:
+                    type: "string"
+                    example: "Child profile created successfully. Use the username to login."
+
+        400:
+          description: "Missing required fields or invalid data"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "parentId, username, displayName, and ageGroup are required"
+
+        404:
+          description: "Parent not found"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Parent not found"
+
+        409:
+          description: "Username already exists"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Username already exists"
+
+  /children/me:
+    get:
+      tags:
+        - "Children"
+      summary: "Get authenticated child's full profile"
+      description: "Retrieves the detailed profile of the logged-in child"
+      responses:
+        200:
+          description: "Profile retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                    format: "uuid"
+
+                  displayName:
+                    type: "string"
+                    example: "Amina"
+
+                  level:
+                    type: "integer"
+                    example: 3
+
+                  stars:
+                    type: "integer"
+                    example: 85
+
+                  streaks:
+                    type: "integer"
+                    example: 5
+
+                  avatarUrl:
+                    type: "string"
+                    format: "uri"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    put:
+      tags:
+        - "Children"
+      summary: "Update child profile"
+      description: "Updates display name, age group, or avatar URL for the authenticated child"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                displayName:
+                  type: "string"
+                  example: "Amina Star"
+                  description: "New display name"
+
+                ageGroup:
+                  type: "string"
+                  example: "11-13"
+                  description: "New age group"
+
+                avatarUrl:
+                  type: "string"
+                  format: "uri"
+                  description: "URL of the avatar image"
+
+      responses:
+        200:
+          description: "Profile updated successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Profile updated successfully"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /children/me/notification-prefs:
+    get:
+      tags:
+        - "Children"
+      summary: "Get notification preferences"
+      description: "Retrieves notification preferences for the authenticated child"
+      responses:
+        200:
+          description: "Preferences retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  pushTips:
+                    type: "boolean"
+                    example: true
+
+                  pushReminders:
+                    type: "boolean"
+                    example: true
+
+                  locale:
+                    type: "string"
+                    example: "ar"
+
+                  quietHours:
+                    type: "object"
+                    properties:
+                      start:
+                        type: "string"
+                        example: |
+                            21:00
+
+                      end:
+                        type: "string"
+                        example: |
+                            07:00
+
+                      timezone:
+                        type: "string"
+                        example: "Africa/Addis_Ababa"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    put:
+      tags:
+        - "Children"
+      summary: "Update notification preferences"
+      description: "Updates the notification settings for the authenticated user"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                pushTips:
+                  type: "boolean"
+                  example: false
+
+                pushReminders:
+                  type: "boolean"
+                  example: true
+
+                locale:
+                  type: "string"
+                  example: "en"
+
+                quietHours:
+                  type: "object"
+                  properties:
+                    start:
+                      type: "string"
+                      example: |
+                          22:00
+
+                    end:
+                      type: "string"
+                      example: |
+                          07:00
+
+                    timezone:
+                      type: "string"
+                      example: "Africa/Addis_Ababa"
+
+      responses:
+        200:
+          description: "Preferences updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /children/me/favorites:
+    get:
+      tags:
+        - "Children"
+      summary: "Get all favorite lessons"
+      description: "Retrieves all favorite lessons for the child"
+      responses:
+        200:
+          description: "Favorites retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  favorites:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        lessonId:
+                          type: "string"
+                          format: "uuid"
+
+                        title:
+                          type: "string"
+                          example: "The Prophet's Face"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Children"
+      summary: "Add a lesson to favorites"
+      description: "Adds a lesson to the child's favorites"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "lessonId"
+              properties:
+                lessonId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        201:
+          description: "Added to favorites"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /children/me/favorites/{lessonId}:
+    delete:
+      tags:
+        - "Children"
+      summary: "Remove a lesson from favorites"
+      description: "Removes a lesson from the child's favorites"
+      parameters:
+        -           in: "path"
+          name: "lessonId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The lesson ID"
+      responses:
+        200:
+          description: "Removed from favorites"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /children/me/avatar:
+    post:
+      tags:
+        - "Children"
+      summary: "Upload child avatar"
+      description: |
+          Uploads an avatar image for the authenticated child.
+          
+          **How to Upload:**
+          1. Convert your image to base64 (use online tool or code)
+          2. Include the base64 string in the request body
+          3. Specify the file name with extension (.jpg, .png, etc.)
+          
+          **Limits:**
+          - Maximum file size: 2MB
+          - Allowed formats: JPG, PNG, GIF, WEBP
+          
+          **Returns:**
+          - Public URL to the uploaded avatar
+          - Automatically updates child's profile with new avatar URL
+          
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "file"
+              properties:
+                file:
+                  type: "string"
+                  description: "Base64 encoded image data (with or without data URI prefix)"
+                  example: |
+                      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+
+                fileName:
+                  type: "string"
+                  description: "Name of the file with extension"
+                  example: "avatar.png"
+
+      responses:
+        200:
+          description: "Avatar uploaded successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "Avatar uploaded successfully"
+
+                  avatarUrl:
+                    type: "string"
+                    format: "uri"
+                    example: |
+                        https://your-project.supabase.co/storage/v1/object/public/avatars/child-id_1234567890.png
+
+        400:
+          description: "Invalid file or missing data"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "File too large. Maximum size is 2MB"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        500:
+          description: "Upload failed"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Failed to upload avatar"
+
+                  details:
+                    type: "string"
+
+  /internal/workers/campaign-dispatch:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Dispatch notification campaign"
+      description: "Internal endpoint to dispatch a scheduled notification campaign"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "campaignId"
+              properties:
+                campaignId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        200:
+          description: "Campaign dispatched successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  notificationsSent:
+                    type: "integer"
+                    example: 150
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /internal/workers/notify-parent:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Send event-based parent notification"
+      description: "Internal endpoint to send notification to parent about child activity"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "parentId"
+                - "eventType"
+                - "message"
+              properties:
+                parentId:
+                  type: "string"
+                  format: "uuid"
+
+                eventType:
+                  type: "string"
+                  enum:
+                    - "lesson_completed"
+                    - "challenge_completed"
+                    - "achievement_unlocked"
+                  example: "lesson_completed"
+
+                message:
+                  type: "string"
+                  example: "Amina just completed 'The Prophet's Smile'!"
+
+      responses:
+        200:
+          description: "Notification queued successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  deliveryStatus:
+                    type: "string"
+                    example: "queued"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /internal/workers/share-render:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Render shareable asset"
+      description: "Internal endpoint to process and render a shareable asset"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "shareId"
+              properties:
+                shareId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        200:
+          description: "Asset rendered successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  outputUrl:
+                    type: "string"
+                    format: "uri"
+                    example: "url_to_rendered_asset"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /internal/workers/update-leaderboards:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Update leaderboards"
+      description: "Internal endpoint to recalculate leaderboard rankings"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "period"
+              properties:
+                period:
+                  type: "string"
+                  enum:
+                    - "daily"
+                    - "weekly"
+                    - "monthly"
+                  example: "daily"
+
+      responses:
+        200:
+          description: "Leaderboard updated successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  period:
+                    type: "string"
+                    example: "daily"
+
+                  entriesCalculated:
+                    type: "integer"
+                    example: 500
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /internal/workers/check-achievements:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Check achievement unlocks"
+      description: "Internal endpoint to check and unlock achievements for a child"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "childId"
+              properties:
+                childId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        200:
+          description: "Achievements checked successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  achievementsUnlocked:
+                    type: "array"
+                    items:
+                      type: "string"
+                      format: "uuid"
+
+                    example:
+                      - "a1"
+                      - "a3"
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /internal/workers/update-streaks:
+    post:
+      tags:
+        - "Internal Workers"
+      summary: "Update streaks"
+      description: "Internal endpoint to update or reset child activity streaks"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+
+      responses:
+        200:
+          description: "Streaks updated successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  streaksUpdated:
+                    type: "integer"
+                    example: 120
+
+                  streaksReset:
+                    type: "integer"
+                    example: 45
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /lesson-categories:
+    get:
+      tags:
+        - "Lessons"
+      summary: "Get all lesson categories"
+      description: "Retrieves the main categories for lessons (e.g., \"Prophet's Description\")"
+      parameters:
+        -           in: "query"
+          name: "level"
+          schema:
+            type: "integer"
+
+          description: "Filter categories by specific level"
+      responses:
+        200:
+          description: "Categories retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  categories:
+                    type: "array"
+                    items:
+                      $ref: |
+                          #/components/schemas/LessonCategory
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /lessons:
+    get:
+      tags:
+        - "Lessons"
+      summary: "Get lessons within a category"
+      description: "Retrieves a list of lessons, filtered by a specific category and level"
+      parameters:
+        -           in: "query"
+          name: "categoryId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the lesson category"
+
+        -           in: "query"
+          name: "level"
+          required: true
+          schema:
+            type: "integer"
+
+          description: "The level number"
+      responses:
+        200:
+          description: "Lessons retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  lessons:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        title:
+                          type: "string"
+                          example: "The Prophet's Face"
+
+                        imageUrl:
+                          type: "string"
+                          format: "uri"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /lessons/{id}:
+    get:
+      tags:
+        - "Lessons"
+      summary: "Get a single lesson's detail"
+      description: "Retrieves the full detail (text, audio, video) for one specific lesson"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the lesson"
+      responses:
+        200:
+          description: "Lesson retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                    format: "uuid"
+
+                  title:
+                    type: "string"
+                    example: "The Prophet's Face"
+
+                  description:
+                    type: "string"
+                    example: "The Messenger of Allah ﷺ had the most beautiful face..."
+
+                  audioUrl:
+                    type: "string"
+                    format: "uri"
+
+                  imageUrl:
+                    type: "string"
+                    format: "uri"
+
+                  videoUrl:
+                    type: "string"
+                    format: "uri"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /lessons/{id}/complete:
+    post:
+      tags:
+        - "Lessons"
+      summary: "Mark a lesson as complete"
+      description: "Marks a lesson as complete, awards stars, and returns the child's new progress summary"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the lesson"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "childId"
+              properties:
+                childId:
+                  type: "string"
+                  format: "uuid"
+
+      responses:
+        200:
+          description: "Lesson marked complete"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  starsEarned:
+                    type: "integer"
+                    example: 5
+
+                  celebration:
+                    type: "object"
+                    properties:
+                      sfxId:
+                        type: "string"
+                        format: "uuid"
+
+                  newProgress:
+                    $ref: |
+                        #/components/schemas/ProgressSummary
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+        409:
+          $ref: |
+              #/components/responses/ConflictError
+
+  /parents/me:
+    get:
+      tags:
+        - "Parents"
+      summary: "Get authenticated parent's profile"
+      description: "Retrieves the profile of the logged-in parent and a summary of their children"
+      responses:
+        200:
+          description: "Profile retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  id:
+                    type: "string"
+                    format: "uuid"
+
+                  name:
+                    type: "string"
+                    example: "Fatima"
+
+                  children:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        display_name:
+                          type: "string"
+                          example: "Amina"
+
+                        level:
+                          type: "integer"
+                          example: 3
+
+                        total_stars:
+                          type: "integer"
+                          example: 50
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /parents/me/dashboard:
+    get:
+      tags:
+        - "Parents"
+      summary: "Get parent dashboard"
+      description: "Gets summary data for the parent's dashboard view, including their children's leaderboard stats"
+      responses:
+        200:
+          description: "Dashboard data retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  childrenSummary:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        name:
+                          type: "string"
+                          example: "Amina"
+
+                        level:
+                          type: "integer"
+                          example: 3
+
+                        stars:
+                          type: "integer"
+                          example: 85
+
+                        leaderboardStats:
+                          type: "object"
+                          properties:
+                            dailyRank:
+                              type: "integer"
+                              example: 15
+
+                            weeklyRank:
+                              type: "integer"
+                              example: 8
+
+                            monthlyRank:
+                              type: "integer"
+                              example: 3
+
+                  notifications:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        message:
+                          type: "string"
+                          example: "Amina completed a challenge."
+
+                        read:
+                          type: "boolean"
+                          example: false
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /parents/me/notifications/read:
+    post:
+      tags:
+        - "Parents"
+      summary: "Mark notifications as read"
+      description: "Marks a list of notifications as read to clear them from the parent's view"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "notificationIds"
+              properties:
+                notificationIds:
+                  type: "array"
+                  items:
+                    type: "string"
+                    format: "uuid"
+
+                  example:
+                    - "n1"
+                    - "n2"
+      responses:
+        200:
+          description: "Notifications marked as read"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /progress/me/summary:
+    get:
+      tags:
+        - "Progress & Leaderboard"
+      summary: "Get child's progress summary"
+      description: "Retrieves the complete progress summary for the authenticated child's dashboard"
+      responses:
+        200:
+          description: "Summary retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/ProgressSummary
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /leaderboard:
+    get:
+      tags:
+        - "Progress & Leaderboard"
+      summary: "Get leaderboard"
+      description: "Retrieves the pre-calculated leaderboard for a specific time period"
+      parameters:
+        -           in: "query"
+          name: "period"
+          required: true
+          schema:
+            type: "string"
+            enum:
+              - "daily"
+              - "weekly"
+              - "monthly"
+          description: "The time period for the leaderboard"
+      responses:
+        200:
+          description: "Leaderboard retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Leaderboard
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /reminders/me:
+    get:
+      tags:
+        - "Reminders"
+      summary: "Get all personal reminders"
+      description: "Retrieves all personal reminders set by the logged-in child"
+      responses:
+        200:
+          description: "Reminders retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  reminders:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        title:
+                          type: "string"
+                          example: "Qiyam al-Layl"
+
+                        time:
+                          type: "string"
+                          example: |
+                              03:00
+
+                        timezone:
+                          type: "string"
+                          example: "Africa/Addis_Ababa"
+
+                        repeat:
+                          type: "string"
+                          example: "daily"
+
+                        enabled:
+                          type: "boolean"
+                          example: true
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Reminders"
+      summary: "Create a personal reminder"
+      description: "Creates a new personal reminder (triggers local notifications)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "title"
+                - "time"
+              properties:
+                title:
+                  type: "string"
+                  example: "Morning Adhkar"
+
+                time:
+                  type: "string"
+                  example: |
+                      06:30
+
+                timezone:
+                  type: "string"
+                  example: "Africa/Addis_Ababa"
+
+                repeat:
+                  type: "string"
+                  example: "daily"
+
+                soundRef:
+                  type: "string"
+                  example: "default_chime.mp3"
+
+                enabled:
+                  type: "boolean"
+                  example: true
+
+      responses:
+        201:
+          description: "Reminder created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  reminderId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Reminder created."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /reminders/me/{id}:
+    put:
+      tags:
+        - "Reminders"
+      summary: "Update a personal reminder"
+      description: "Updates an existing personal reminder"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the reminder"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                title:
+                  type: "string"
+                  example: "Evening Adhkar"
+
+                time:
+                  type: "string"
+                  example: |
+                      18:30
+
+                timezone:
+                  type: "string"
+                  example: "Africa/Addis_Ababa"
+
+                repeat:
+                  type: "string"
+                  example: "daily"
+
+                soundRef:
+                  type: "string"
+                  example: "default_chime.mp3"
+
+                enabled:
+                  type: "boolean"
+                  example: false
+
+      responses:
+        200:
+          description: "Reminder updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+    delete:
+      tags:
+        - "Reminders"
+      summary: "Delete a personal reminder"
+      description: "Deletes a personal reminder"
+      parameters:
+        -           in: "path"
+          name: "id"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the reminder"
+      responses:
+        200:
+          description: "Reminder deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: |
+                    #/components/schemas/Success
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /admin/reminders:
+    get:
+      tags:
+        - "Reminders"
+      summary: "Get all global reminders (Admin)"
+      description: "Retrieves all global, admin-managed reminders"
+      responses:
+        200:
+          description: "Global reminders retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  globalReminders:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          format: "uuid"
+
+                        title:
+                          type: "string"
+                          example: "Fasting (Mon/Thu)"
+
+                        message:
+                          type: "string"
+                          example: "Remember to fast today"
+
+                        time:
+                          type: "string"
+                          example: |
+                              00:00
+
+                        repeat:
+                          type: "string"
+                          example: "weekly"
+
+                        locale:
+                          type: "string"
+                          example: "en"
+
+                        active:
+                          type: "boolean"
+                          example: true
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+    post:
+      tags:
+        - "Reminders"
+      summary: "Create a global reminder (Admin)"
+      description: "Creates a new global reminder template"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "title"
+              properties:
+                title:
+                  type: "string"
+                  example: "Morning Adhkar"
+
+                message:
+                  type: "string"
+                  example: "Start your day with remembrance..."
+
+                repeat:
+                  type: "string"
+                  example: "daily"
+
+                locale:
+                  type: "string"
+                  example: "en"
+
+                active:
+                  type: "boolean"
+                  example: true
+
+      responses:
+        201:
+          description: "Global reminder created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  reminderId:
+                    type: "string"
+                    format: "uuid"
+
+                  message:
+                    type: "string"
+                    example: "Global reminder created."
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /share/render:
+    post:
+      tags:
+        - "Social Sharing"
+      summary: "Render a shareable asset"
+      description: "Creates a job to render a shareable asset (image/video). Ensures no PII"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "sourceType"
+                - "sourceId"
+                - "format"
+              properties:
+                sourceType:
+                  type: "string"
+                  enum:
+                    - "lesson"
+                    - "challenge"
+                    - "achievement"
+                  example: "lesson"
+
+                sourceId:
+                  type: "string"
+                  format: "uuid"
+
+                format:
+                  type: "string"
+                  enum:
+                    - "image"
+                    - "video"
+                  example: "image"
+
+      responses:
+        202:
+          description: "Job created and queued"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  shareId:
+                    type: "string"
+                    format: "uuid"
+
+                  status:
+                    type: "string"
+                    example: "pending"
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+  /share/{shareId}:
+    get:
+      tags:
+        - "Social Sharing"
+      summary: "Get status of shareable asset"
+      description: "Checks the rendering job status and gets the download URL"
+      parameters:
+        -           in: "path"
+          name: "shareId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the share job"
+      responses:
+        200:
+          description: "Status retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  status:
+                    type: "string"
+                    enum:
+                      - "pending"
+                      - "processing"
+                      - "completed"
+                      - "failed"
+                    example: "completed"
+
+                  downloadUrl:
+                    type: "string"
+                    format: "uri"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        404:
+          $ref: |
+              #/components/responses/NotFoundError
+
+  /share/{shareId}/track:
+    post:
+      tags:
+        - "Social Sharing"
+      summary: "Track social share (Telemetry)"
+      description: "Telemetry endpoint to track which platform content was shared to"
+      security: []
+      parameters:
+        -           in: "path"
+          name: "shareId"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+
+          description: "The UUID of the share job"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+                - "platform"
+              properties:
+                platform:
+                  type: "string"
+                  enum:
+                    - "whatsapp"
+                    - "facebook"
+                    - "twitter"
+                    - "instagram"
+                    - "telegram"
+                  example: "whatsapp"
+
+      responses:
+        200:
+          description: "Tracked successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+        400:
+          $ref: |
+              #/components/responses/BadRequestError
+
+  /health:
+    get:
+      tags:
+        - "System"
+      summary: "Get system health"
+      description: "Checks the health and status of the API"
+      security: []
+      responses:
+        200:
+          description: "System is healthy"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  status:
+                    type: "string"
+                    example: "ok"
+
+                  uptime:
+                    type: "string"
+                    example: "24h"
+
+  /version:
+    get:
+      tags:
+        - "System"
+      summary: "Get API version"
+      description: "Returns the current deployed version of the API"
+      security: []
+      responses:
+        200:
+          description: "Version information retrieved"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  version:
+                    type: "string"
+                    example: "v1.0.0"
+
+                  releaseDate:
+                    type: "string"
+                    example: "2025-11-04"
+
+  /upload/image:
+    post:
+      tags:
+        - "Upload"
+      summary: "Upload an image file (authenticated)"
+      description: |
+          Upload an image file directly to Supabase Storage.
+          
+          **No base64 conversion needed** - just upload the file!
+          
+          **How to use:**
+          1. Login and get your JWT token
+          2. Use the token in Authorization header
+          3. Upload image file using multipart/form-data
+          4. Receive the public URL back
+          
+          **Supported buckets:**
+          - avatars (default)
+          - backgrounds
+          - lesson-assets
+          - sfx
+          - animations
+          - shareables
+          
+          **Limits:**
+          - Maximum file size: 5MB
+          - Allowed formats: JPG, PNG, GIF, WEBP
+          
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: "object"
+              required:
+                - "image"
+              properties:
+                image:
+                  type: "string"
+                  format: "binary"
+                  description: "The image file to upload"
+
+                bucket:
+                  type: "string"
+                  enum:
+                    - "avatars"
+                    - "backgrounds"
+                    - "lesson-assets"
+                    - "sfx"
+                    - "animations"
+                    - "shareables"
+                  default: "avatars"
+                  description: "Storage bucket to upload to"
+
+      responses:
+        200:
+          description: "File uploaded successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "File uploaded successfully"
+
+                  url:
+                    type: "string"
+                    format: "uri"
+                    example: |
+                        https://your-project.supabase.co/storage/v1/object/public/avatars/user-id_1699564321.png
+
+                  fileName:
+                    type: "string"
+                    example: "user-id_1699564321.png"
+
+                  bucket:
+                    type: "string"
+                    example: "avatars"
+
+        400:
+          description: "Bad request - no file or invalid bucket"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "No file uploaded"
+
+        401:
+          $ref: |
+              #/components/responses/UnauthorizedError
+
+        500:
+          description: "Upload failed"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Failed to upload file"
+
+                  details:
+                    type: "string"
+
+  /upload/public/image:
+    post:
+      tags:
+        - "Upload"
+      summary: "Upload an image file (public - no authentication required)"
+      description: |
+          Upload an image file directly to Supabase Storage without authentication.
+          
+          **Perfect for testing!**
+          
+          **No base64 conversion needed** - just upload the file!
+          
+          **How to use:**
+          1. Select your image file
+          2. Upload using multipart/form-data
+          3. Receive the public URL back immediately
+          
+          **Supported buckets:**
+          - avatars (default)
+          - backgrounds
+          - lesson-assets
+          - sfx
+          - animations
+          - shareables
+          
+          **Limits:**
+          - Maximum file size: 5MB
+          - Allowed formats: JPG, PNG, GIF, WEBP
+          
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: "object"
+              required:
+                - "image"
+              properties:
+                image:
+                  type: "string"
+                  format: "binary"
+                  description: "The image file to upload"
+
+                bucket:
+                  type: "string"
+                  enum:
+                    - "avatars"
+                    - "backgrounds"
+                    - "lesson-assets"
+                    - "sfx"
+                    - "animations"
+                    - "shareables"
+                  default: "avatars"
+                  description: "Storage bucket to upload to"
+
+      responses:
+        200:
+          description: "File uploaded successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: true
+
+                  message:
+                    type: "string"
+                    example: "File uploaded successfully"
+
+                  url:
+                    type: "string"
+                    format: "uri"
+                    example: |
+                        https://your-project.supabase.co/storage/v1/object/public/avatars/public_1699564321.png
+
+                  fileName:
+                    type: "string"
+                    example: "public_1699564321.png"
+
+                  bucket:
+                    type: "string"
+                    example: "avatars"
+
+        400:
+          description: "Bad request - no file or invalid bucket"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "No file uploaded"
+
+        500:
+          description: "Upload failed"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  success:
+                    type: "boolean"
+                    example: false
+
+                  message:
+                    type: "string"
+                    example: "Failed to upload file"
+
+                  details:
+                    type: "string"
