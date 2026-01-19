@@ -48,7 +48,7 @@ info:
 
 servers:
   -     url: |
-        https://prophets-legacy-backend-production.up.railway.app/api
+        https://prophets-legacy-backend-production-7859.up.railway.app/api
     description: "Production server (Railway)"
 
   -     url: |

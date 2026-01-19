@@ -351,6 +351,11 @@
 
 
 const supabase = require('../config/supabase');
+const { checkAndPromoteLevel } = require('../utils/levelManager');
+
+/**
+ * Get main categories only
+ */
 
 const getMainCategories = async (req, res) => {
   try {
@@ -649,6 +654,11 @@ const completeLesson = async (req, res) => {
       })
       .eq('id', childId);
 
+    const promotion = await checkAndPromoteLevel(childId);
+    
+    // Determine the level to show in the response (new if promoted, old if not)
+    const currentLevel = promotion.promoted ? promotion.newLevel : (child.level || 1);
+
     // 3. Insert Notification
     await supabase.from('child_notifications').insert({
         child_id: childId,
@@ -707,11 +717,15 @@ const completeLesson = async (req, res) => {
     res.status(200).json({
       success: true,
       starsEarned: lesson.stars_reward,
+      // level progression info
+      promoted: promotion.promoted, // New field: true/false
+      newLevel: currentLevel,       // New field: the level number
+      // celebration info
       celebration: {
         sfxId: sfx?.id || null
       },
       newProgress: {
-        currentLevel: child.level || 1,
+        currentLevel: currentLevel || 1,
         levelProgress: {
           completedInLevel: completedCount || 0,
           totalInLevel: totalLessonsInLevel,

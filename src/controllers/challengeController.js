@@ -526,6 +526,7 @@
 
 
 const supabase = require('../config/supabase');
+const { checkAndPromoteLevel } = require('../utils/levelManager');
 
 const getChallengeCategories = async (req, res) => {
   try {
@@ -1012,6 +1013,11 @@ const finishSessionInternal = async (req, res, sessionId, session) => {
         })
         .eq('id', session.child_id);
 
+        const promotion = await checkAndPromoteLevel(session.child_id);
+      
+      // Determine the level to return (new if promoted, old if not)
+      const currentLevel = promotion.promoted ? promotion.newLevel : child.level;
+
       // Notification
       await supabase.from('child_notifications').insert({
           child_id: session.child_id,
@@ -1049,7 +1055,8 @@ const finishSessionInternal = async (req, res, sessionId, session) => {
       newProgress = {
           totalStars: (child?.total_stars || 0) + starsEarned,
           currentStreak: newStreak,
-          currentLevel: child.level
+          // currentLevel: child.level
+          currentLevel: currentLevel
       };
     }
 
@@ -1066,6 +1073,10 @@ const finishSessionInternal = async (req, res, sessionId, session) => {
       },
       starsEarned,
       passed,
+      // promotion to next level
+      promoted: promotion ? promotion.promoted : false,
+      newLevel: currentLevel || 1,
+      
       celebration: {
         sfxId: sfx?.id || null,
         animationId: animation?.id || null
