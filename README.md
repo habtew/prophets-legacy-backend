@@ -185,7 +185,7 @@ npm run build
 See `FIXES_APPLIED.md` for detailed fixes including:
 - Swagger YAML syntax errors
 - Parent registration RLS policy issues
-- Error logging improvements
+- Error logging improvements.
 
 ## License
 

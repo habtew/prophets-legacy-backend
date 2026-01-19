@@ -29,7 +29,7 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         title: id
  *         required: true
  *         schema:
  *           type: string
@@ -54,12 +54,12 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: mainCategoryId
+ *         title: mainCategoryId
  *         required: true
  *         schema:
  *           type: string
  *       - in: path
- *         name: subcategoryId
+ *         title: subcategoryId
  *         required: true
  *         schema:
  *           type: string
@@ -87,10 +87,10 @@
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - title
  *               - level
  *             properties:
- *               name:
+ *               title:
  *                 type: string
  *                 example: "Prophet's Life"
  *               level:
@@ -103,7 +103,7 @@
  *                 type: string
  *                 example: "https://example.com/category-image.jpg"
  *           example:
- *             name: "Prophet's Life"
+ *             title: "Prophet's Life"
  *             level: 1
  *             description: "Learn about the life of Prophet Muhammad (PBUH)"
  *             imageUrl: "https://example.com/category-image.jpg"
@@ -147,11 +147,11 @@
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - title
  *               - level
  *               - mainCategoryId
  *             properties:
- *               name:
+ *               title:
  *                 type: string
  *                 example: "Prophet's Appearance"
  *               level:
@@ -169,7 +169,7 @@
  *                 type: string
  *                 example: "https://example.com/subcategory-image.jpg"
  *           example:
- *             name: "Prophet's Appearance"
+ *             title: "Prophet's Appearance"
  *             level: 1
  *             mainCategoryId: "123e4567-e89b-12d3-a456-426614174000"
  *             description: "Learn about the Prophet's physical appearance"
@@ -208,7 +208,7 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         title: id
  *         required: true
  *         schema:
  *           type: string
@@ -230,7 +230,7 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         title: id
  *         required: true
  *         schema:
  *           type: string
@@ -345,7 +345,7 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         title: id
  *         required: true
  *         schema:
  *           type: string
@@ -384,7 +384,7 @@
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         title: id
  *         required: true
  *         schema:
  *           type: string

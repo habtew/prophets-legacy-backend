@@ -45,7 +45,7 @@ letter_arrangement, multiple_choice, missing_word, crossword, word_ordering, tap
     },
     servers: [
       {
-        url: 'https://prophets-legacy-backend-production.up.railway.app/api',
+        url: 'https://prophets-legacy-backend-production-7859.up.railway.app/api',
         description: 'Production server (Railway)'
       },
       {
@@ -175,7 +175,7 @@ letter_arrangement, multiple_choice, missing_word, crossword, word_ordering, tap
               type: 'string',
               format: 'uuid'
             },
-            name: {
+            title: {
               type: 'string',
               example: "Prophet's Description"
             },

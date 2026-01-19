@@ -19,7 +19,7 @@ const getMainCategories = async (req, res) => {
     res.status(200).json({
       categories: (categories || []).map(c => ({
         id: c.id,
-        name: c.name,
+        title: c.title,
         description: c.description,
         imageUrl: c.image_url,
         level: c.level,
@@ -68,7 +68,7 @@ const getMainCategoryContents = async (req, res) => {
       ...(subcategories || []).map(c => ({
         type: 'category',
         id: c.id,
-        name: c.name,
+        title: c.title,
         description: c.description,
         imageUrl: c.image_url,
         level: c.level,
@@ -155,7 +155,7 @@ const getSubcategoryLessons = async (req, res) => {
 
     res.status(200).json({
       id: subcategory.id,
-      name: subcategory.name,
+      title: subcategory.title,
       description: subcategory.description,
       imageUrl: subcategory.image_url,
       level: subcategory.level,
@@ -169,10 +169,10 @@ const getSubcategoryLessons = async (req, res) => {
 
 const createMainCategory = async (req, res) => {
   try {
-    const { name, level, description, imageUrl } = req.body;
+    const { title, level, description, imageUrl } = req.body;
 
-    if (!name || !level) {
-      return res.status(400).json({ success: false, message: 'name and level are required' });
+    if (!title || !level) {
+      return res.status(400).json({ success: false, message: 'title and level are required' });
     }
 
     const { data: existing } = await supabase
@@ -187,7 +187,7 @@ const createMainCategory = async (req, res) => {
     const { data: category, error } = await supabase
       .from('lesson_categories')
       .insert({
-        name,
+        title,
         level,
         description: description || null,
         image_url: imageUrl || null,
@@ -216,10 +216,10 @@ const createMainCategory = async (req, res) => {
 
 const createSubcategory = async (req, res) => {
   try {
-    const { name, level, description, imageUrl, mainCategoryId } = req.body;
+    const { title, level, description, imageUrl, mainCategoryId } = req.body;
 
-    if (!name || !level || !mainCategoryId) {
-      return res.status(400).json({ success: false, message: 'name, level, and mainCategoryId are required' });
+    if (!title || !level || !mainCategoryId) {
+      return res.status(400).json({ success: false, message: 'title, level, and mainCategoryId are required' });
     }
 
     const { data: mainCategory } = await supabase
@@ -245,7 +245,7 @@ const createSubcategory = async (req, res) => {
     const { data: subcategory, error } = await supabase
       .from('lesson_categories')
       .insert({
-        name,
+        title,
         level,
         description: description || null,
         image_url: imageUrl || null,
@@ -275,10 +275,10 @@ const createSubcategory = async (req, res) => {
 const updateLessonCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, level, description, imageUrl, orderIndex } = req.body;
+    const { title, level, description, imageUrl, orderIndex } = req.body;
 
     const updates = {};
-    if (name !== undefined) updates.name = name;
+    if (title !== undefined) updates.title = title;
     if (level !== undefined) updates.level = level;
     if (description !== undefined) updates.description = description;
     if (imageUrl !== undefined) updates.image_url = imageUrl;
@@ -379,7 +379,7 @@ const createLesson = async (req, res) => {
     // Validate category exists
     const { data: category } = await supabase
       .from('lesson_categories')
-      .select('id, name, parent_category_id')
+      .select('id, title, parent_category_id')
       .eq('id', categoryId)
       .maybeSingle();
 

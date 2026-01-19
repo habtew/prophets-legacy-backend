@@ -108,10 +108,174 @@ const getLeaderboard = async (req, res) => {
   }
 };
 
+// const getProgressSummary = async (req, res) => {
+//   try {
+//     const childId = req.user.id;
+
+//     const { data: child, error: childError } = await supabase
+//       .from('children')
+//       .select('level, total_stars, current_streak, max_streak')
+//       .eq('id', childId)
+//       .maybeSingle();
+
+//     if (childError || !child) {
+//       return res.status(404).json({ success: false, message: 'Child not found' });
+//     }
+
+//     const { data: lessonCategories } = await supabase
+//       .from('lesson_categories')
+//       .select('id, name, level')
+//       .order('level', { ascending: true })
+//       .order('name', { ascending: true });
+
+//     const lessonCategoryProgress = [];
+//     let totalLessonsCompleted = 0;
+//     let totalLessonsAvailable = 0;
+
+//     for (const category of lessonCategories || []) {
+//       const { data: lessons } = await supabase
+//         .from('lessons')
+//         .select('id')
+//         .eq('category_id', category.id);
+
+//       const totalInCategory = lessons?.length || 0;
+
+//       const { data: completions } = await supabase
+//         .from('lesson_completions')
+//         .select('lesson_id')
+//         .eq('child_id', childId)
+//         .in('lesson_id', (lessons || []).map(l => l.id));
+
+//       const completedInCategory = completions?.length || 0;
+
+//       totalLessonsCompleted += completedInCategory;
+//       totalLessonsAvailable += totalInCategory;
+
+//       if (totalInCategory > 0) {
+//         lessonCategoryProgress.push({
+//           categoryName: category.name,
+//           level: category.level,
+//           completed: completedInCategory,
+//           total: totalInCategory,
+//           percentage: Math.round((completedInCategory / totalInCategory) * 100)
+//         });
+//       }
+//     }
+
+//     const { data: challengeLevels } = await supabase
+//       .from('challenge_categories')
+//       .select('id, name, level')
+//       .eq('is_published', true)
+//       .order('level', { ascending: true })
+//       .order('name', { ascending: true });
+
+//     const challengeLevelProgress = [];
+//     let totalChallengesCompleted = 0;
+//     let totalChallengesAvailable = 0;
+
+//     const levelGroups = {};
+//     for (const category of challengeLevels || []) {
+//       if (!levelGroups[category.level]) {
+//         levelGroups[category.level] = [];
+//       }
+//       levelGroups[category.level].push(category);
+//     }
+
+//     for (const [level, categories] of Object.entries(levelGroups)) {
+//       let completedInLevel = 0;
+//       let totalInLevel = categories.length;
+
+//       for (const category of categories) {
+//         const { data: sessions } = await supabase
+//           .from('attempt_sessions')
+//           .select('passed')
+//           .eq('child_id', childId)
+//           .eq('category_id', category.id)
+//           .eq('status', 'completed')
+//           .eq('passed', true)
+//           .limit(1);
+
+//         if (sessions && sessions.length > 0) {
+//           completedInLevel++;
+//         }
+//       }
+
+//       totalChallengesCompleted += completedInLevel;
+//       totalChallengesAvailable += totalInLevel;
+
+//       challengeLevelProgress.push({
+//         level: parseInt(level),
+//         completed: completedInLevel,
+//         total: totalInLevel,
+//         percentage: Math.round((completedInLevel / totalInLevel) * 100)
+//       });
+//     }
+
+//     const { count: unlockedAchievements } = await supabase
+//       .from('child_achievements')
+//       .select('*', { count: 'exact' })
+//       .eq('child_id', childId);
+
+//     const { count: totalAchievements } = await supabase
+//       .from('achievements')
+//       .select('*', { count: 'exact' });
+
+//     const totalItemsCompleted = totalLessonsCompleted + totalChallengesCompleted;
+//     const totalItemsAvailable = totalLessonsAvailable + totalChallengesAvailable;
+//     const overallPercentage = totalItemsAvailable > 0
+//       ? Math.round((totalItemsCompleted / totalItemsAvailable) * 100)
+//       : 0;
+
+//     res.status(200).json({
+//       currentLevel: child.level,
+//       totalStars: child.total_stars,
+//       currentStreak: child.current_streak,
+//       maxStreak: child.max_streak,
+
+//       lessonProgress: {
+//         byCategory: lessonCategoryProgress,
+//         totalCompleted: totalLessonsCompleted,
+//         totalAvailable: totalLessonsAvailable,
+//         percentage: totalLessonsAvailable > 0
+//           ? Math.round((totalLessonsCompleted / totalLessonsAvailable) * 100)
+//           : 0
+//       },
+
+//       challengeProgress: {
+//         byLevel: challengeLevelProgress,
+//         totalCompleted: totalChallengesCompleted,
+//         totalAvailable: totalChallengesAvailable,
+//         percentage: totalChallengesAvailable > 0
+//           ? Math.round((totalChallengesCompleted / totalChallengesAvailable) * 100)
+//           : 0
+//       },
+
+//       achievements: {
+//         unlocked: unlockedAchievements || 0,
+//         total: totalAchievements || 0,
+//         percentage: totalAchievements > 0
+//           ? Math.round(((unlockedAchievements || 0) / totalAchievements) * 100)
+//           : 0
+//       },
+
+//       overallProgress: {
+//         totalCompleted: totalItemsCompleted,
+//         totalAvailable: totalItemsAvailable,
+//         percentage: overallPercentage
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Exception in getProgressSummary:', error);
+//     res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// };
+
+
 const getProgressSummary = async (req, res) => {
   try {
     const childId = req.user.id;
 
+    // Fetch Child Stats
     const { data: child, error: childError } = await supabase
       .from('children')
       .select('level, total_stars, current_streak, max_streak')
@@ -122,104 +286,114 @@ const getProgressSummary = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Child not found' });
     }
 
-    const { data: lessonCategories } = await supabase
-      .from('lesson_categories')
-      .select('id, name, level')
-      .order('level', { ascending: true })
-      .order('name', { ascending: true });
+    // --- 1. Fetch Lessons Data (Parallel) ---
+    // Fetch all needed data in parallel to avoid N+1 queries
+    const [
+        { data: allLessons },
+        { data: allCategories },
+        { data: lessonCompletions }
+    ] = await Promise.all([
+        supabase.from('lessons').select('id, category_id'),
+        supabase.from('lesson_categories').select('id, name, level').order('level', { ascending: true }).order('name', { ascending: true }),
+        supabase.from('lesson_completions').select('lesson_id').eq('child_id', childId)
+    ]);
 
+    // Map completions for fast lookup
+    const completedLessonIds = new Set((lessonCompletions || []).map(lc => lc.lesson_id));
+
+    // Process Lesson Progress
     const lessonCategoryProgress = [];
     let totalLessonsCompleted = 0;
     let totalLessonsAvailable = 0;
 
-    for (const category of lessonCategories || []) {
-      const { data: lessons } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('category_id', category.id);
+    // Group lessons by category
+    const lessonsByCategory = {};
+    (allLessons || []).forEach(l => {
+        if (!lessonsByCategory[l.category_id]) lessonsByCategory[l.category_id] = [];
+        lessonsByCategory[l.category_id].push(l);
+    });
 
-      const totalInCategory = lessons?.length || 0;
+    // Calculate progress per category
+    (allCategories || []).forEach(cat => {
+        const catLessons = lessonsByCategory[cat.id] || [];
+        const total = catLessons.length;
+        
+        // Only include categories that actually have lessons
+        if (total > 0) {
+            const completed = catLessons.filter(l => completedLessonIds.has(l.id)).length;
+            
+            totalLessonsCompleted += completed;
+            totalLessonsAvailable += total;
 
-      const { data: completions } = await supabase
-        .from('lesson_completions')
-        .select('lesson_id')
-        .eq('child_id', childId)
-        .in('lesson_id', (lessons || []).map(l => l.id));
+            lessonCategoryProgress.push({
+                categoryName: cat.name,
+                level: cat.level,
+                completed,
+                total,
+                percentage: Math.round((completed / total) * 100)
+            });
+        }
+    });
 
-      const completedInCategory = completions?.length || 0;
-
-      totalLessonsCompleted += completedInCategory;
-      totalLessonsAvailable += totalInCategory;
-
-      if (totalInCategory > 0) {
-        lessonCategoryProgress.push({
-          categoryName: category.name,
-          level: category.level,
-          completed: completedInCategory,
-          total: totalInCategory,
-          percentage: Math.round((completedInCategory / totalInCategory) * 100)
-        });
-      }
-    }
-
-    const { data: challengeLevels } = await supabase
+    // --- 2. Fetch Challenge Data ---
+    const { data: challengeCats } = await supabase
       .from('challenge_categories')
       .select('id, name, level')
       .eq('is_published', true)
-      .order('level', { ascending: true })
-      .order('name', { ascending: true });
+      .order('level');
+
+    const { data: passedSessions } = await supabase
+      .from('attempt_sessions')
+      .select('category_id')
+      .eq('child_id', childId)
+      .eq('passed', true)
+      .eq('status', 'completed');
+    
+    // Use Set to count unique categories passed (prevents double counting if played multiple times)
+    const passedCategoryIds = new Set((passedSessions || []).map(s => s.category_id));
 
     const challengeLevelProgress = [];
     let totalChallengesCompleted = 0;
     let totalChallengesAvailable = 0;
 
-    const levelGroups = {};
-    for (const category of challengeLevels || []) {
-      if (!levelGroups[category.level]) {
-        levelGroups[category.level] = [];
-      }
-      levelGroups[category.level].push(category);
-    }
+    // Group by level
+    const challengesByLevel = {};
+    (challengeCats || []).forEach(c => {
+        if (!challengesByLevel[c.level]) challengesByLevel[c.level] = [];
+        challengesByLevel[c.level].push(c);
+    });
 
-    for (const [level, categories] of Object.entries(levelGroups)) {
-      let completedInLevel = 0;
-      let totalInLevel = categories.length;
+    // Iterate levels found
+    const levels = Object.keys(challengesByLevel).map(Number).sort((a,b) => a - b);
+    
+    levels.forEach(lvl => {
+        const cats = challengesByLevel[lvl];
+        const total = cats.length;
+        const completed = cats.filter(c => passedCategoryIds.has(c.id)).length;
 
-      for (const category of categories) {
-        const { data: sessions } = await supabase
-          .from('attempt_sessions')
-          .select('passed')
-          .eq('child_id', childId)
-          .eq('category_id', category.id)
-          .eq('status', 'completed')
-          .eq('passed', true)
-          .limit(1);
+        totalChallengesAvailable += total;
+        totalChallengesCompleted += completed;
 
-        if (sessions && sessions.length > 0) {
-          completedInLevel++;
-        }
-      }
+        challengeLevelProgress.push({
+            level: lvl,
+            completed,
+            total,
+            percentage: Math.round((completed / total) * 100)
+        });
+    });
 
-      totalChallengesCompleted += completedInLevel;
-      totalChallengesAvailable += totalInLevel;
-
-      challengeLevelProgress.push({
-        level: parseInt(level),
-        completed: completedInLevel,
-        total: totalInLevel,
-        percentage: Math.round((completedInLevel / totalInLevel) * 100)
-      });
-    }
-
+    // --- 3. Achievements ---
+    // Use head:true to efficiently count without fetching rows
     const { count: unlockedAchievements } = await supabase
       .from('child_achievements')
-      .select('*', { count: 'exact' })
+      .select('*', { count: 'exact', head: true })
       .eq('child_id', childId);
 
     const { count: totalAchievements } = await supabase
       .from('achievements')
-      .select('*', { count: 'exact' });
+      .select('*', { count: 'exact', head: true });
 
+    // --- Overall Calculation ---
     const totalItemsCompleted = totalLessonsCompleted + totalChallengesCompleted;
     const totalItemsAvailable = totalLessonsAvailable + totalChallengesAvailable;
     const overallPercentage = totalItemsAvailable > 0
@@ -253,7 +427,7 @@ const getProgressSummary = async (req, res) => {
       achievements: {
         unlocked: unlockedAchievements || 0,
         total: totalAchievements || 0,
-        percentage: totalAchievements > 0
+        percentage: (totalAchievements || 0) > 0
           ? Math.round(((unlockedAchievements || 0) / totalAchievements) * 100)
           : 0
       },
@@ -264,6 +438,7 @@ const getProgressSummary = async (req, res) => {
         percentage: overallPercentage
       }
     });
+
   } catch (error) {
     console.error('Exception in getProgressSummary:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
